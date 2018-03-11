@@ -58,12 +58,12 @@ public class RequestService{
 //  
   
   
-  public String getImage(int instance_id, String url ) {
+  public String getImage(String instance_id, String url ) {
 	  System.out.println("Function called");
 	  String output = "";
 	  PropertiesService prop = new PropertiesService();
 	  String user = prop.getUser();
-	  String host = prop.getHost(instance_id);
+	  String host = instance_id;
 	  String command = prop.getCmd(url);
       String privateKey = prop.getKeyfile();
       int port = 22;
