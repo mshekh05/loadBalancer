@@ -46,7 +46,7 @@ public class ApiController {
 				SqsServices.sendMsg(url);
 			} else {
 				output = processURL(instance,url);
-				loadBalancer.update(instance);
+				//loadBalancer.update(instance);
 			}
 
 		} catch (Exception e) {
@@ -61,7 +61,8 @@ public class ApiController {
 		if (output.length() <= 2) {
 			output = "Not Found";
 		}
-		String currentURL = SqsServices.receiveMsg();
+		String currentURL= "";
+		//String currentURL = SqsServices.receiveMsg();
 		if(!currentURL.isEmpty()) {
 			instance = loadBalancer.nextInstance();
 			processURL(instance,currentURL);
