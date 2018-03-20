@@ -34,7 +34,7 @@ public class AwsInstanceService {
 		RunInstancesRequest rir = new RunInstancesRequest(imageId, 
 				minInstanceCount, maxInstanceCount);
 		rir.setInstanceType("t2.micro"); //set instance type
-		rir.setKeyName("test1");
+		rir.setKeyName("CC-key");
 		
 		RunInstancesResult result = ec2.runInstances(rir);
 		
