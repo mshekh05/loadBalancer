@@ -1,11 +1,10 @@
 package com.cc.api.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Queue;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -18,7 +17,7 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 
 @Component
-public class LoadBalancer {
+public class LoadBalancer implements Runnable{
 	
 	//instance id, Currently how many requests are getting processed on instance
 //	private HashMap<String,Integer> instanceToLoadMap = new HashMap<>();
@@ -65,7 +64,7 @@ public class LoadBalancer {
     PropertiesService prop;
     public LoadBalancer(){
         prop = new PropertiesService();
-        String instanceID = prop.getHost(currentRunningInstances);
+        String instanceID = "i-017b7f87292dc3202";
         AwsInstanceService.startinstance(instanceID);
     }
     public void run(){
@@ -77,22 +76,46 @@ public class LoadBalancer {
             	Map<String,String> attributes = sqs.getQueueAttributes(request).getAttributes();
             	requestQueueLength = Integer.parseInt(attributes.get("ApproximateNumberOfMessages"));
             	
+            	Queue<String> runningInstances = new LinkedList<>();
+            	Queue<String> stoppedInstances = new LinkedList<>();
+            	final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+            	DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
+            	List<Reservation> reservations = describeInstancesResult.getReservations();
+
             	
-                Thread.sleep(30*1000);
-                if(currentRunningInstances<requestQueueLength) {
-                    for(int i=currentRunningInstances;i<=requestQueueLength;i++) {
-                        currentRunningInstances++;
-                        String instanceID = prop.getHost(currentRunningInstances);
+            	List<Instance> listOfInstances = new ArrayList<>();
+            	for(Reservation reservation : reservations)
+            		listOfInstances.addAll(reservation.getInstances());
+            	
+            	
+            	for(Instance instance: listOfInstances)
+            	{
+            		if(instance.getState().getName().equals("running"))
+            			runningInstances.add(instance.getInstanceId());
+            		else if(instance.getState().getName().equals("stopped"))
+            			stoppedInstances.add(instance.getInstanceId());
+            			
+            			
+            		
+            	}
+            	
+                Thread.sleep(10*1000);
+                if(runningInstances.size()<requestQueueLength) {
+                    for(int i=runningInstances.size();i<Math.min(requestQueueLength, 5);i++) {
+                        String instanceID = stoppedInstances.poll();
                         AwsInstanceService.startinstance(instanceID);
+                        if(instanceID != null)
+                        	runningInstances.add(instanceID);
+                        
                     }
                     
-                }
+                }/*
                 if(currentRunningInstances>requestQueueLength) {
                     
                     String instanceID = prop.getHost(currentRunningInstances);
                     AwsInstanceService.stopinstance(instanceID);
                     currentRunningInstances--; 
-                }  
+                }  */
             } catch (InterruptedException e) {
                e.printStackTrace();
             }
@@ -100,30 +123,4 @@ public class LoadBalancer {
         
     }
 
-	public String getPublicIp(String instanceID) {
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();	
-		
-		DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
-		List<Reservation> reservations = describeInstancesResult.getReservations();
-		ArrayList<Instance> listOfInstances = new ArrayList<Instance>();
-		for(Reservation reservation : reservations)
-			listOfInstances.addAll(reservation.getInstances());
-		
-		String ownIP = null;
-		
-		for(Instance instance: listOfInstances)
-		{
-			if(instance.getInstanceId().equals(instanceID)) {
-				ownIP = instance.getPublicIpAddress();
-				break;
-			}
-				
-			System.out.println(ownIP);
-		}
-        return ownIP;
-    }
-	
-//	public void update(String instance) {
-//		instanceToLoadMap.put(instance, instanceToLoadMap.get(instance)-1);
-//	}
 }

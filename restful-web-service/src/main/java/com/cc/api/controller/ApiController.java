@@ -1,37 +1,13 @@
 package com.cc.api.controller;
 
 import java.io.UnsupportedEncodingException;
-import java.util.List;
-
-import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.RunInstancesRequest;
-import com.amazonaws.services.ec2.model.RunInstancesResult;
-import com.amazonaws.services.ec2.model.StartInstancesRequest;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.cc.api.service.AwsInstanceService;
-import com.cc.api.service.LoadBalancer;
-import com.cc.api.service.RequestService;
-import com.cc.api.service.S3service;
 import com.cc.api.service.SqsServices;
 
 @RestController
 public class ApiController {
-	@Autowired
-	private AwsInstanceService awsService;
-	@Autowired
-	private RequestService rs;
-	@Autowired
-	private LoadBalancer loadBalancer;
 
 	@GetMapping("/url")
 	public String getUrl(@RequestParam String url) throws UnsupportedEncodingException {
