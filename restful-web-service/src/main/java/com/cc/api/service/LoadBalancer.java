@@ -64,7 +64,6 @@ public class LoadBalancer implements Runnable{
     PropertiesService prop;
     public LoadBalancer(){
         prop = new PropertiesService();
-        String instanceID = "i-01f0a56a636b99ac7";
 //        AwsInstanceService.startinstance(instanceID);
     }
     public void run(){
@@ -81,7 +80,7 @@ public class LoadBalancer implements Runnable{
 
             	
             	Queue<String> runningInstances = new LinkedList<>();
-            	Queue<String> stoppedInstances = new LinkedList<>();
+            	//Queue<String> stoppedInstances = new LinkedList<>();
             	final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
             	DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
             	List<Reservation> reservations = describeInstancesResult.getReservations();
@@ -94,37 +93,30 @@ public class LoadBalancer implements Runnable{
             	
             	for(Instance instance: listOfInstances)
             	{
-            		if(instance.getInstanceId().equals("i-0cebbcd0bd6fbcb82")) {
+            		if(instance.getInstanceId().equals("i-046121b4e494562ed")) {
             			System.out.println("#############################Cont###################################");
             			continue;
             			
             		}
-            		
-            		
-            		
+            			
             		if(instance.getState().getName().equals("running")||instance.getState().getName().equals("pending") )
             			runningInstances.add(instance.getInstanceId());
-            		else if(instance.getState().getName().equals("stopped"))
-            			stoppedInstances.add(instance.getInstanceId());
-            			
             			
             		
             	}
             	
-            	System.out.println("############################# Run inst"+Integer.toString(runningInstances.size())+"#############################################");
-            	System.out.println("############################# stop inst"+Integer.toString(stoppedInstances.size())+"#############################################");
-
-            	
-                Thread.sleep(10*1000);
+            	System.out.println("############################# Run inst"+Integer.toString(runningInstances.size())+"#############################################");   	
+                
                 if(runningInstances.size()<requestQueueLength) {
                     for(int i=runningInstances.size();i<Math.min(requestQueueLength, 5);i++) {
-                        String instanceID = stoppedInstances.poll();
-                        if(instanceID != null) {
-                        	System.out.println("###############################Starting Instance "+instanceID+"##################################");
-                            AwsInstanceService.startinstance(instanceID);
-
+                        //String instanceID = stoppedInstances.poll();
+       
+                        	System.out.println("###############################Creating Instance ##################################");
+                            Instance instance = AwsInstanceService.createinstance();
+                            Thread.sleep(10*1000);
+                            String instanceID = instance.getInstanceId();
                         	runningInstances.add(instanceID);
-                        }
+                       
                         
                     }
                     
