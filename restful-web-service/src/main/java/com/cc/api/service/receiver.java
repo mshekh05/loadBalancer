@@ -24,26 +24,6 @@ import ch.qos.logback.classic.Logger;
 import java.util.logging.LogManager;
 
 public class receiver {
-	
-	// App Instance to run image recognition script and return output
-//	public static String processURL(String url) {
-//		 String s;
-//		 StringBuilder output = new StringBuilder();
-//		try {
-//            Process p = Runtime.getRuntime().exec(cmd1 + url + cmd2);
-//            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-//            System.out.println ("-------------------------------------------------------------------------");
-//            while ((s = br.readLine()) != null) {
-//            		output.append(s);
-//            		//System.out.println("Message: "+output);
-//            }
-//            p.waitFor();
-//            System.out.println ("exit: " + p.exitValue());
-//            p.destroy();
-//        } catch (Exception e) {}
-//		
-//		return output.toString();
-//	}
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -57,13 +37,7 @@ public class receiver {
 		String s;
 		String output = "";
 		
-		
-		
-		// get current time to be appended with s3 key - image ID
-		//String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
-		
-		//String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
-		String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/528586190821/myrequestqueuetest";
+		String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 		String responseQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_receiver2";
 		
 		// Log manager
@@ -89,6 +63,8 @@ public class receiver {
 		
 		// get image name from given Url
 		String[] s3ProcessedUrl;
+		
+		String command_terminate[] = { "/bin/bash", "-c", "aws ec2 terminate-instances --instance-ids $(wget -q -O - http://instance-data/latest/meta-data/instance-id);" };
 
 		while (true) {
 			
@@ -96,7 +72,9 @@ public class receiver {
 			if(count > 100) {
 				try {
 					System.out.println("Terminating Instance......... ");
-					Process p = Runtime.getRuntime().exec("aws ec2 terminate-instances --instance-ids $(wget -q -O - http://instance-data/latest/meta-data/instance-id)");
+					Process p = Runtime.getRuntime().exec(command_terminate);
+					p.waitFor();
+					p.destroy();
 					break;
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -114,15 +92,13 @@ public class receiver {
 				
 				System.out.println(Url);
 				
-				// for each message received, process to get the output of the URL
-				//imageRecognitionOutput = processURL(Url.toString());
+				String command_img_recog[] = { "/bin/bash", "-c", cmd1 + cmd2 + cmd3 + Url + cmd4};
 				
-				String command[] = { "/bin/bash", "-c", cmd1 + cmd2 + cmd3 + Url + cmd4};
-				
+				// App Instance to run image recognition script and return output
 				try {
 					
 				    System.out.println("Inside try block");
-		            Process p = Runtime.getRuntime().exec(command);
+		            Process p = Runtime.getRuntime().exec(command_img_recog);
 		            p.waitFor();
 		            
 		            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -146,8 +122,7 @@ public class receiver {
 				
 				s3ProcessedUrl = Url.split("\\/");
 				
-				// put [imageID_timestamp, output] into S3
-				//s3.putObject(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1] + "_" + timeStamp, imageRecognitionOutput);
+				// put [imageID, output] into S3
 				s3.putObject(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput);
 				
 				System.out.println("Object placed in bucket");
@@ -165,7 +140,7 @@ public class receiver {
 				// publish message to response Q
 				SendMessageRequest send_msg_request = new SendMessageRequest()
 						.withQueueUrl(responseQueueUrl)
-						.withMessageBody(Url);
+						.withMessageBody(s3ProcessedUrl[s3ProcessedUrl.length - 1] + "||" + imageRecognitionOutput);
 				
 				sqs.sendMessage(send_msg_request);
 				System.out.println("Message sent to response Q");
