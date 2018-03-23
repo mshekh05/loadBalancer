@@ -13,7 +13,7 @@ import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import java.util.Properties;
+//import java.util.Properties;
 
 
 
@@ -72,9 +72,9 @@ public class AwsInstanceService {
 
 	}
 	
-	public static void main(String[] args) {
-		PropertiesService prop = new PropertiesService();
-		System.out.println(prop.getUser());
-		
-}
+//	public static void main(String[] args) {
+//		PropertiesService prop = new PropertiesService();
+//		System.out.println(prop.getUser());
+//		
+//}
 }

@@ -56,7 +56,7 @@ public class LoadBalancer implements Runnable{
 //		
 //	}
 	final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
-	private static int currentRunningInstances = 1;
+//	private static int currentRunningInstances = 1;
 	private static String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 	private int requestQueueLength = 0;
 	
@@ -64,17 +64,21 @@ public class LoadBalancer implements Runnable{
     PropertiesService prop;
     public LoadBalancer(){
         prop = new PropertiesService();
-        String instanceID = "i-017b7f87292dc3202";
-        AwsInstanceService.startinstance(instanceID);
+        String instanceID = "i-01f0a56a636b99ac7";
+//        AwsInstanceService.startinstance(instanceID);
     }
     public void run(){
+    	System.out.println("#######################   Load Balancer Started #######################");
 
         while(true) {
             try {
         
-            	GetQueueAttributesRequest request = new GetQueueAttributesRequest(requestQueueUrl);
+            	GetQueueAttributesRequest request = new GetQueueAttributesRequest(requestQueueUrl).withAttributeNames("ApproximateNumberOfMessages");
             	Map<String,String> attributes = sqs.getQueueAttributes(request).getAttributes();
             	requestQueueLength = Integer.parseInt(attributes.get("ApproximateNumberOfMessages"));
+            	System.out.println("#######################  Number of msg Aprox #######################" );
+            	System.out.println(requestQueueLength);
+
             	
             	Queue<String> runningInstances = new LinkedList<>();
             	Queue<String> stoppedInstances = new LinkedList<>();
@@ -90,7 +94,15 @@ public class LoadBalancer implements Runnable{
             	
             	for(Instance instance: listOfInstances)
             	{
-            		if(instance.getState().getName().equals("running"))
+            		if(instance.getInstanceId().equals("i-0cebbcd0bd6fbcb82")) {
+            			System.out.println("#############################Cont###################################");
+            			continue;
+            			
+            		}
+            		
+            		
+            		
+            		if(instance.getState().getName().equals("running")||instance.getState().getName().equals("pending") )
             			runningInstances.add(instance.getInstanceId());
             		else if(instance.getState().getName().equals("stopped"))
             			stoppedInstances.add(instance.getInstanceId());
@@ -99,13 +111,20 @@ public class LoadBalancer implements Runnable{
             		
             	}
             	
+            	System.out.println("############################# Run inst"+Integer.toString(runningInstances.size())+"#############################################");
+            	System.out.println("############################# stop inst"+Integer.toString(stoppedInstances.size())+"#############################################");
+
+            	
                 Thread.sleep(10*1000);
                 if(runningInstances.size()<requestQueueLength) {
                     for(int i=runningInstances.size();i<Math.min(requestQueueLength, 5);i++) {
                         String instanceID = stoppedInstances.poll();
-                        AwsInstanceService.startinstance(instanceID);
-                        if(instanceID != null)
+                        if(instanceID != null) {
+                        	System.out.println("###############################Starting Instance "+instanceID+"##################################");
+                            AwsInstanceService.startinstance(instanceID);
+
                         	runningInstances.add(instanceID);
+                        }
                         
                     }
                     
@@ -117,6 +136,8 @@ public class LoadBalancer implements Runnable{
                     currentRunningInstances--; 
                 }  */
             } catch (InterruptedException e) {
+            	System.out.println("################################ Error in load balancer ");
+            	System.out.println(e);
                e.printStackTrace();
             }
         }

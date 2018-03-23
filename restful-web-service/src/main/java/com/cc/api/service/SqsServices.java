@@ -12,23 +12,23 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @Component
 public class SqsServices {
-	private static final String QUEUE_NAME = "testQueue";
+//	private static final String QUEUE_NAME = "cc_proj_sender1";
 	final static AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
-	public static void createQueue() {
-		CreateQueueResult create_result = sqs.createQueue(QUEUE_NAME);
-		System.out.println("Created a queue");
-		
-	}
+//	public static void createQueue() {
+//		CreateQueueResult create_result = sqs.createQueue(QUEUE_NAME);
+//		System.out.println("Created a queue");
+//		
+//	}
 
 	public static void sendMsg(String urlRequest) {
-		String queueUrl = sqs.getQueueUrl(QUEUE_NAME).getQueueUrl();
+		String queueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 		SendMessageRequest send_msg_request = new SendMessageRequest().withQueueUrl(queueUrl).withMessageBody(urlRequest).withDelaySeconds(5);
 		sqs.sendMessage(send_msg_request);
 		System.out.println("send a msg");
 	}
 	
 	public static String receiveMsg() {
-		String queueUrl = sqs.getQueueUrl(QUEUE_NAME).getQueueUrl();
+		String queueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 		List<Message> messages = sqs.receiveMessage(queueUrl).getMessages();
 		if(!messages.isEmpty()) {
 			for( Message m: messages) {

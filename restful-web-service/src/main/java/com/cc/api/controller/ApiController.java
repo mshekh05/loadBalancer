@@ -19,13 +19,7 @@ public class ApiController {
 		String output = "Instance is not free";
 		try {
 			SqsServices.sendMsg(url);
-//			String instance = loadBalancer.nextInstance();
-//			if (instance.isEmpty()) {
-//				SqsServices.sendMsg(url);
-//			} else {
-//				output = processURL(instance,url);
-//				//loadBalancer.update(instance);
-//			}
+
 
 		} catch (Exception e) {
 			System.out.println(e);
@@ -33,25 +27,5 @@ public class ApiController {
 		return output;
 	}
 	
-//	public String processURL(String instance, String URL) {
-//		String output = "Not Found";
-//		output = rs.getImage(instance, URL);
-//		if (output.length() <= 2) {
-//			output = "Not Found";
-//		}
-//		String currentURL= "";
-//		//String currentURL = SqsServices.receiveMsg();
-//		if(!currentURL.isEmpty()) {
-//			instance = loadBalancer.nextInstance();
-//			processURL(instance,currentURL);
-//		}
-//		//publish to S3 bucket
-//		S3service.putObject(URL, output);
-//		return output;
-//	}
-//
-//	@GetMapping("/create")
-//	public String createInstance() {
-//		return awsService.createinstance().getInstanceId();
-//	}
+
 }
