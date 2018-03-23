@@ -69,7 +69,7 @@ public class receiver {
 		while (true) {
 			
 			// Instance stops automatically when message is not available for pick up for more than 100 times
-			if(count > 100) {
+			if(count > 60) {
 				try {
 					System.out.println("Terminating Instance......... ");
 					Process p = Runtime.getRuntime().exec(command_terminate);
@@ -147,6 +147,7 @@ public class receiver {
 	
 			}
 			count++;
+			TimeUnit.SECONDS.sleep(1);
 		}
 	}
 }
