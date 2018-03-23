@@ -61,9 +61,8 @@ public class LoadBalancer implements Runnable{
 	private int requestQueueLength = 0;
 	
 	
-    PropertiesService prop;
     public LoadBalancer(){
-        prop = new PropertiesService();
+       
 //        AwsInstanceService.startinstance(instanceID);
     }
     public void run(){
