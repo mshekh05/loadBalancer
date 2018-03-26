@@ -13,6 +13,11 @@ import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.GroupGrantee;
+import com.amazonaws.services.s3.model.Owner;
+import com.amazonaws.services.s3.model.Permission;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
@@ -33,7 +38,7 @@ public class receiver {
 		final String cmd4 = " --num_top_predictions 1;";
 		final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
 		final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();	
-		final String bucket_name = "keyvaluebucket";
+		final String bucket_name = "keyvaluepairbucket";
 		String s;
 		String output = "";
 		
@@ -119,9 +124,14 @@ public class receiver {
 				
 				System.out.println("Output placed in bucket: " + imageRecognitionOutput);
 				
+				AccessControlList acl = new AccessControlList();
+				acl.grantPermission(GroupGrantee.AllUsers, Permission.FullControl);
 				
 				s3ProcessedUrl = Url.split("\\/");
 				
+				s3.setBucketAcl(bucket_name, acl);
+				//PutObjectRequest req = new PutObjectRequest(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput).withAccessControlList(acl);
+                //s3.putObject(req);
 				// put [imageID, output] into S3
 				s3.putObject(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput);
 				
