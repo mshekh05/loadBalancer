@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -11,6 +12,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AccessControlList;
@@ -38,9 +45,11 @@ public class receiver {
 		final String cmd4 = " --num_top_predictions 1;";
 		final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
 		final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();	
-		final String bucket_name = "keyvaluepairbucket";
+		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+		final String bucket_name = "mykeyvaluebucket";
 		String s;
 		String output = "";
+		String Ins_output = "";
 		
 		String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 		String responseQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_receiver2";
@@ -66,10 +75,13 @@ public class receiver {
 		// URL picked from request Q
 		String Url = "";
 		
+		//test
+		String InstanceId = "";
+		
 		// get image name from given Url
 		String[] s3ProcessedUrl;
-		
-		String command_terminate[] = { "/bin/bash", "-c", "aws ec2 terminate-instances --instance-ids $(wget -q -O - http://instance-data/latest/meta-data/instance-id);" };
+		String command_getInstanceId[] = { "/bin/bash", "-c", "wget -q -O - http://instance-data/latest/meta-data/instance-id;" };
+		//String command_terminate[] = { "/bin/bash", "-c", "aws ec2 terminate-instances --instance-ids $(wget -q -O - http://instance-data/latest/meta-data/instance-id);" };
 
 		while (true) {
 			
@@ -77,11 +89,44 @@ public class receiver {
 			if(count > 60) {
 				try {
 					System.out.println("Terminating Instance......... ");
-					Process p = Runtime.getRuntime().exec(command_terminate);
-					p.waitFor();
-					p.destroy();
-					break;
-				} catch (IOException e) {
+					//test
+					Process t = Runtime.getRuntime().exec(command_getInstanceId);
+					t.waitFor();
+					BufferedReader br = new BufferedReader(new InputStreamReader(t.getInputStream()));
+					while ((s = br.readLine()) != null) {
+						Ins_output = s;
+	            			System.out.println("InstanceID: "+ Ins_output);
+					}
+					t.destroy();
+					
+					//our code
+//					Process p = Runtime.getRuntime().exec(command_terminate);
+//					p.waitFor();
+//					p.destroy();
+					
+					TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(Ins_output);
+					ec2.terminateInstances(tir);
+					System.out.println("Terminate instances request has been run");
+					
+					DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
+	                	List<Reservation> reservations = describeInstancesResult.getReservations();                
+	                	List<Instance> listOfInstances = new ArrayList<>();
+	                
+	                System.out.println("Fetching instance ID from reservations");
+	                
+	                for (Reservation reservation : reservations)
+	                    listOfInstances.addAll(reservation.getInstances());                
+	                for (Instance instance : listOfInstances) {
+	                		if(instance.getInstanceId().equals(output)) {
+	                			if (instance.getState().getName().equals("shutting-down")
+	    	                            || instance.getState().getName().equals("terminated"))
+	    	                        System.out.println("Termination successful.. YAYYY!! :) :)");
+	                			break;
+	                		}
+	                }
+				} catch (Exception e) {
+					System.out.println("**************************");
+					System.out.println("Exception in terminating instance");
 					e.printStackTrace();
 				}
 			}
@@ -116,30 +161,51 @@ public class receiver {
 		            
 		            p.destroy();
 		        } catch (Exception e) {
+		        		System.out.println("**************************");
+					System.out.println("Exception in getting output from image recognition module");
 		        		System.out.println(e);
 		        }
 
 				System.out.println("Msgs worked on: "+ Url);
-				imageRecognitionOutput = output;
+				//imageRecognitionOutput = output;
 				
-				System.out.println("Output placed in bucket: " + imageRecognitionOutput);
-				
-				AccessControlList acl = new AccessControlList();
-				acl.grantPermission(GroupGrantee.AllUsers, Permission.FullControl);
+				String res = !output.equals("") ? "Yes" : "No";
+				System.out.println("Output retrieved? " + res);
+				System.out.println("Output retrieved: " + output);
+//				AccessControlList acl = new AccessControlList();
+//				acl.grantPermission(GroupGrantee.AllUsers, Permission.FullControl);
 				
 				s3ProcessedUrl = Url.split("\\/");
 				
-				s3.setBucketAcl(bucket_name, acl);
+				String[] imageRecognitionOutputArray = output.split("\\(");
+				for(String str : imageRecognitionOutputArray)
+					System.out.println("Output in array: " + str);
+				imageRecognitionOutput = output.split("\\(")[0];
+				System.out.println("imageRecognitionOutput: " + imageRecognitionOutput);
+//				s3.setBucketAcl(bucket_name, acl);
 				//PutObjectRequest req = new PutObjectRequest(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput).withAccessControlList(acl);
                 //s3.putObject(req);
-				// put [imageID, output] into S3
-				s3.putObject(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput);
 				
-				System.out.println("Object placed in bucket");
+				try {
+					// put [imageID, output] into S3
+					s3.putObject(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput);
+					System.out.println("Object placed in bucket");
+				} catch (Exception e) {
+					System.out.println("**************************");
+					System.out.println("Exception in S3 bucket");
+					e.printStackTrace();
+				}
 				
-				// delete message from request Q
-				sqs.deleteMessage(requestQueueUrl, m.getReceiptHandle());
-				System.out.println("Message deleted from request Q");
+				try {
+					// delete message from request Q
+					sqs.deleteMessage(requestQueueUrl, m.getReceiptHandle());
+					System.out.println("Message deleted from request Q");
+				} catch (Exception e){
+					System.out.println("**************************");
+					System.out.println("Exception in deleting from request Q");
+					e.printStackTrace();
+				}
+				
 				
 				long endTime = (new Date()).getTime();	
 				long difference = endTime - startTime;
@@ -147,13 +213,20 @@ public class receiver {
 				// time taken to complete 1 request
 				System.out.println("Time taken to complete 1 request: " + difference);
 				
-				// publish message to response Q
-				SendMessageRequest send_msg_request = new SendMessageRequest()
-						.withQueueUrl(responseQueueUrl)
-						.withMessageBody(s3ProcessedUrl[s3ProcessedUrl.length - 1] + "||" + imageRecognitionOutput);
+				try {
+					// publish message to response Q
+					SendMessageRequest send_msg_request = new SendMessageRequest()
+							.withQueueUrl(responseQueueUrl)
+							.withMessageBody(s3ProcessedUrl[s3ProcessedUrl.length - 1] + "||" + imageRecognitionOutput);
+					
+					sqs.sendMessage(send_msg_request);
+					System.out.println("Message sent to response Q");
+				} catch (Exception e) {
+					System.out.println("**************************");
+					System.out.println("Exception in sending to response Q");
+					e.printStackTrace();
+				}
 				
-				sqs.sendMessage(send_msg_request);
-				System.out.println("Message sent to response Q");
 	
 			}
 			count++;
