@@ -31,7 +31,7 @@ public class AwsInstanceService {
 		
 		System.out.println("create an instance");
 		
-		String imageId = "ami-f25e4892";  //image id of the instance
+		String imageId = "ami-9be8fefb";  //image id of the instance
 		int minInstanceCount = 1; //create 1 instance
 		int maxInstanceCount = 1;
 		IamInstanceProfileSpecification prof = new IamInstanceProfileSpecification();
@@ -79,8 +79,8 @@ public class AwsInstanceService {
 	}
 	
 	private static String getECSuserData() {
-		   String userData = "";
-		   userData = userData + "java -jar receiverFinal.jar &";
+		   String userData = "#!/bin/bash\n";
+		   userData = userData + "java -jar /home/ubuntu/receiverNew1.jar &";
 		   String base64UserData = null;
 		   try {
 		       base64UserData = new String( Base64.encodeBase64( userData.getBytes( "UTF-8" )), "UTF-8" );
