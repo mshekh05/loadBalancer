@@ -22,42 +22,7 @@ import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 @Component
 public class LoadBalancer implements Runnable {
 
-	// instance id, Currently how many requests are getting processed on instance
-	// private HashMap<String,Integer> instanceToLoadMap = new HashMap<>();
-	// private int threshold = 1;
-	// private int count = 1;
-	// private int totalRunningInstances = 1;
-	// @Autowired
-	// private AwsInstanceService awsService;
-	// @Autowired
-	// private SqsServices sqsServices;
-	//
-	//
-	// public String nextInstance() {
-	// String initInstance = "";
-	// count = 1;
-	// PropertiesService prop = new PropertiesService();
-	// for(String instance: instanceToLoadMap.keySet() ) {
-	// if(instanceToLoadMap.get(instance)<threshold) {
-	// initInstance = instance;
-	// count++;
-	// instanceToLoadMap.put(instance, instanceToLoadMap.get(instance)+1);
-	// return instance;
-	//
-	//
-	// }
-	// }
-	// if(totalRunningInstances < 20) {
-	// String instanceID = prop.getHost(count);
-	// count++;
-	// String instanceIP = getPublicIp(instanceID);
-	// totalRunningInstances++;
-	// instanceToLoadMap.put(instanceIP, 1);
-	// return instanceIP;
-	// }
-	// return initInstance;
-	//
-	// }
+	
 	final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
 	// private static int currentRunningInstances = 1;
 	private static String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
@@ -80,7 +45,7 @@ public class LoadBalancer implements Runnable {
 				requestQueueLength = Integer.parseInt(attributes.get("ApproximateNumberOfMessages"));
 				System.out.println("#######################  Number of msg Aprox #######################");
 				System.out.println(requestQueueLength);
-				Thread.sleep(6 * 1000);
+				
 
 				Queue<String> runningInstances = new LinkedList<>();
 				// Queue<String> stoppedInstances = new LinkedList<>();
@@ -100,7 +65,7 @@ public class LoadBalancer implements Runnable {
 					}
 
 					if (instance.getState().getName().equals("running")
-							|| instance.getState().getName().equals("pending"))
+							|| instance.getState().getName().equals("pending") || instance.getState().getName().equals("shutting-down"))
 						runningInstances.add(instance.getInstanceId());
 
 				}
@@ -109,7 +74,7 @@ public class LoadBalancer implements Runnable {
 						+ "#############################################");
 
 				if (runningInstances.size() < requestQueueLength) {
-					for (int i = runningInstances.size(); i < Math.min(requestQueueLength, 5); i++) {
+					for (int i = runningInstances.size(); i < Math.min(requestQueueLength, 19); i++) {
 						// String instanceID = stoppedInstances.poll();
 
 						System.out.println(
@@ -124,7 +89,7 @@ public class LoadBalancer implements Runnable {
 						createTagsRequest.withTags(tags);
 						createTagsRequest.withResources(instance.getInstanceId());
 						ec2.createTags(createTagsRequest);
-						Thread.sleep(10 * 1000);
+						//Thread.sleep(10 * 1000);
 						String instanceID = instance.getInstanceId();
 						runningInstances.add(instanceID);
 
@@ -136,10 +101,12 @@ public class LoadBalancer implements Runnable {
 					 * String instanceID = prop.getHost(currentRunningInstances);
 					 * AwsInstanceService.stopinstance(instanceID); currentRunningInstances--; }
 					 */
-			} catch (InterruptedException e) {
+				Thread.sleep(3 * 1000);
+			} catch (Exception e) {
 				System.out.println("################################ Error in load balancer ");
-				System.out.println(e);
-				e.printStackTrace();
+			
+				//System.out.println(e);
+				//e.printStackTrace();
 			}
 		}
 

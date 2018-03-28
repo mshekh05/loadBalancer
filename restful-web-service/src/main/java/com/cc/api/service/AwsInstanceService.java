@@ -31,7 +31,7 @@ public class AwsInstanceService {
 		
 		System.out.println("create an instance");
 		
-		String imageId = "ami-9be8fefb";  //image id of the instance
+		String imageId = "ami-83bea8e3";  //image id of the instance
 		int minInstanceCount = 1; //create 1 instance
 		int maxInstanceCount = 1;
 		IamInstanceProfileSpecification prof = new IamInstanceProfileSpecification();

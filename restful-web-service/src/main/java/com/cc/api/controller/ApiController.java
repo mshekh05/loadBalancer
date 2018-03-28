@@ -43,18 +43,23 @@ public class ApiController {
             String image = url_split[url_split.length - 1];
             
             long startTime = System.currentTimeMillis(); //fetch starting time
-            while((System.currentTimeMillis()-startTime)<60000)
-            {/*
+            while((System.currentTimeMillis()-startTime)<240000)
+            {
                 List<Message> messages = sqs.receiveMessage(responseQueueUrl).getMessages();
 
                 for (Message m : messages) {
                     String response = m.getBody().toString();
+                    String responseSplit[] = response.split("\\|\\|");
                     if (response.split("\\|\\|")[0].equals(image)) {
                         sqs.deleteMessage(responseQueueUrl, m.getReceiptHandle());
-
+                        if (responseSplit.length <=1){
+                        	return " ";
+                        }
+                        else {
                         return response.split("\\|\\|")[1];
                     }
-                }*/
+                    }
+                }/*
             	try {
             		S3Object object = s3.getObject(bucket_name, image);
             		if(object!=null) {
@@ -69,10 +74,10 @@ public class ApiController {
             		}
             	}catch(AmazonS3Exception e){
             		TimeUnit.SECONDS.sleep(1);
-            	}
+            	}*/
                     	
                	// Process the objectData stream.
-      
+                TimeUnit.SECONDS.sleep(1);
                 
             }
         } catch (Exception e) {
