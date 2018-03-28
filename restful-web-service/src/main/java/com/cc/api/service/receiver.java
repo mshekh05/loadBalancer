@@ -36,6 +36,54 @@ import ch.qos.logback.classic.Logger;
 import java.util.logging.LogManager;
 
 public class receiver {
+	
+	// Instance terminates automatically once request Q is empty
+	public static void terminateInstance() {
+		
+		final String command_getInstanceId[] = { "/bin/bash", "-c", "wget -q -O - http://instance-data/latest/meta-data/instance-id;" };
+		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+		String Ins_output = "";
+		String s = "";
+		String output = "";
+		
+		try {
+			System.out.println("Terminating Instance......... ");
+			//test
+			Process t = Runtime.getRuntime().exec(command_getInstanceId);
+			t.waitFor();
+			BufferedReader br = new BufferedReader(new InputStreamReader(t.getInputStream()));
+			while ((s = br.readLine()) != null) {
+				Ins_output = s;
+        			System.out.println("InstanceID: "+ Ins_output);
+			}
+			t.destroy();
+			
+			TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(Ins_output);
+			ec2.terminateInstances(tir);
+			System.out.println("Terminate instances request has been run");
+			
+			DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
+            	List<Reservation> reservations = describeInstancesResult.getReservations();                
+            	List<Instance> listOfInstances = new ArrayList<>();
+            
+            System.out.println("Fetching instance ID from reservations");
+            
+            for (Reservation reservation : reservations)
+                listOfInstances.addAll(reservation.getInstances());                
+            for (Instance instance : listOfInstances) {
+            		if(instance.getInstanceId().equals(output)) {
+            			if (instance.getState().getName().equals("shutting-down")
+	                            || instance.getState().getName().equals("terminated"))
+	                        System.out.println("Termination successful.. YAYYY!! :) :)");
+            			break;
+            		}
+            }
+		} catch (Exception e) {
+			System.out.println("**************************");
+			System.out.println("Exception in terminating instance");
+			e.printStackTrace();
+		}
+	}
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -45,12 +93,10 @@ public class receiver {
 		final String cmd4 = " --num_top_predictions 1;";
 		final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
 		final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();	
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
 		final String bucket_name = "mykeyvaluebucket";
 		String s;
 		String output = "";
-		String Ins_output = "";
-		
+
 		String requestQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_sender1";
 		String responseQueueUrl = "https://sqs.us-west-1.amazonaws.com/087303647010/cc_proj_receiver2";
 		
@@ -65,9 +111,6 @@ public class receiver {
 		       logger.setAdditive(false);
 		    }
 		}
-          
-		// count = number of times an instance pings the request queue
-		int count = 1;
 		
 		// output from image recognition script
 		String imageRecognitionOutput = "";
@@ -75,69 +118,23 @@ public class receiver {
 		// URL picked from request Q
 		String Url = "";
 		
-		//test
-		String InstanceId = "";
-		
 		// get image name from given Url
 		String[] s3ProcessedUrl;
-		String command_getInstanceId[] = { "/bin/bash", "-c", "wget -q -O - http://instance-data/latest/meta-data/instance-id;" };
-		//String command_terminate[] = { "/bin/bash", "-c", "aws ec2 terminate-instances --instance-ids $(wget -q -O - http://instance-data/latest/meta-data/instance-id);" };
 
 		while (true) {
 			
-			// Instance stops automatically when message is not available for pick up for more than 100 times
-			if(count > 60) {
-				try {
-					System.out.println("Terminating Instance......... ");
-					//test
-					Process t = Runtime.getRuntime().exec(command_getInstanceId);
-					t.waitFor();
-					BufferedReader br = new BufferedReader(new InputStreamReader(t.getInputStream()));
-					while ((s = br.readLine()) != null) {
-						Ins_output = s;
-	            			System.out.println("InstanceID: "+ Ins_output);
-					}
-					t.destroy();
-					
-					//our code
-//					Process p = Runtime.getRuntime().exec(command_terminate);
-//					p.waitFor();
-//					p.destroy();
-					
-					TerminateInstancesRequest tir = new TerminateInstancesRequest().withInstanceIds(Ins_output);
-					ec2.terminateInstances(tir);
-					System.out.println("Terminate instances request has been run");
-					
-					DescribeInstancesResult describeInstancesResult = ec2.describeInstances();
-	                	List<Reservation> reservations = describeInstancesResult.getReservations();                
-	                	List<Instance> listOfInstances = new ArrayList<>();
-	                
-	                System.out.println("Fetching instance ID from reservations");
-	                
-	                for (Reservation reservation : reservations)
-	                    listOfInstances.addAll(reservation.getInstances());                
-	                for (Instance instance : listOfInstances) {
-	                		if(instance.getInstanceId().equals(output)) {
-	                			if (instance.getState().getName().equals("shutting-down")
-	    	                            || instance.getState().getName().equals("terminated"))
-	    	                        System.out.println("Termination successful.. YAYYY!! :) :)");
-	                			break;
-	                		}
-	                }
-				} catch (Exception e) {
-					System.out.println("**************************");
-					System.out.println("Exception in terminating instance");
-					e.printStackTrace();
-				}
-			}
+			//try was here previously
 			
 			List<Message> messages = sqs.receiveMessage(requestQueueUrl).getMessages();
-
+			if(messages.isEmpty()) {
+				terminateInstance();
+			}
+				
 			for (Message m : messages) {
 				
 				long startTime = (new Date()).getTime();
 				
-				count = 0;
+//				count = 0;
 				Url = m.getBody().toString();
 				
 				System.out.println(Url);
@@ -164,16 +161,12 @@ public class receiver {
 		        		System.out.println("**************************");
 					System.out.println("Exception in getting output from image recognition module");
 		        		System.out.println(e);
+		        		terminateInstance();
 		        }
 
 				System.out.println("Msgs worked on: "+ Url);
-				//imageRecognitionOutput = output;
-				
-				String res = !output.equals("") ? "Yes" : "No";
-				System.out.println("Output retrieved? " + res);
+
 				System.out.println("Output retrieved: " + output);
-//				AccessControlList acl = new AccessControlList();
-//				acl.grantPermission(GroupGrantee.AllUsers, Permission.FullControl);
 				
 				s3ProcessedUrl = Url.split("\\/");
 				
@@ -182,9 +175,6 @@ public class receiver {
 					System.out.println("Output in array: " + str);
 				imageRecognitionOutput = output.split("\\(")[0];
 				System.out.println("imageRecognitionOutput: " + imageRecognitionOutput);
-//				s3.setBucketAcl(bucket_name, acl);
-				//PutObjectRequest req = new PutObjectRequest(bucket_name, s3ProcessedUrl[s3ProcessedUrl.length - 1], imageRecognitionOutput).withAccessControlList(acl);
-                //s3.putObject(req);
 				
 				try {
 					// put [imageID, output] into S3
@@ -194,6 +184,7 @@ public class receiver {
 					System.out.println("**************************");
 					System.out.println("Exception in S3 bucket");
 					e.printStackTrace();
+					terminateInstance();
 				}
 				
 				try {
@@ -204,6 +195,7 @@ public class receiver {
 					System.out.println("**************************");
 					System.out.println("Exception in deleting from request Q");
 					e.printStackTrace();
+					terminateInstance();
 				}
 				
 				
@@ -225,12 +217,9 @@ public class receiver {
 					System.out.println("**************************");
 					System.out.println("Exception in sending to response Q");
 					e.printStackTrace();
-				}
-				
-	
+					terminateInstance();
+				}	
 			}
-			count++;
-			TimeUnit.SECONDS.sleep(1);
 		}
 	}
 }
