@@ -76,23 +76,27 @@ public class LoadBalancer implements Runnable {
 				if (runningInstances.size() < requestQueueLength) {
 					for (int i = runningInstances.size(); i < Math.min(requestQueueLength, 19); i++) {
 						// String instanceID = stoppedInstances.poll();
-
 						System.out.println(
 								"###############################Creating Instance ##################################");
 						Instance instance = AwsInstanceService.createinstance();
-						Collection<Tag> tags = new ArrayList<Tag>();
-						Tag t = new Tag();
-						t.setKey("Name");
-						t.setValue("App-Instance-" + String.valueOf(System.currentTimeMillis()));
-						tags.add(t);
-						CreateTagsRequest createTagsRequest = new CreateTagsRequest();
-						createTagsRequest.withTags(tags);
-						createTagsRequest.withResources(instance.getInstanceId());
-						ec2.createTags(createTagsRequest);
-						//Thread.sleep(10 * 1000);
-						String instanceID = instance.getInstanceId();
-						runningInstances.add(instanceID);
-
+						
+						try {
+							Collection<Tag> tags = new ArrayList<Tag>();
+							Tag t = new Tag();
+							t.setKey("Name");
+							t.setValue("App-Instance-" + String.valueOf(System.currentTimeMillis()));
+							tags.add(t);
+							CreateTagsRequest createTagsRequest = new CreateTagsRequest();
+							createTagsRequest.withTags(tags);
+							createTagsRequest.withResources(instance.getInstanceId());
+							ec2.createTags(createTagsRequest);
+							//Thread.sleep(10 * 1000);
+							String instanceID = instance.getInstanceId();
+							runningInstances.add(instanceID);
+						} catch (Exception e) {
+							System.out.println("Error in setting name tags");
+							e.printStackTrace();
+						}
 					}
 
 				} /*
@@ -104,9 +108,7 @@ public class LoadBalancer implements Runnable {
 				Thread.sleep(3 * 1000);
 			} catch (Exception e) {
 				System.out.println("################################ Error in load balancer ");
-			
-				//System.out.println(e);
-				//e.printStackTrace();
+				e.printStackTrace();
 			}
 		}
 
