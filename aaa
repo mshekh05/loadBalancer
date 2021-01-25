@@ -1,0 +1,38 @@
+package com.mgyongyosi.rabbitmq.test.routes;
+
+import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.rabbitmq.RabbitMQConstants;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RabbitMQRequeueRouteBuilder extends RouteBuilder {
+
+    @Override
+    public void configure() throws Exception {
+        // @formatter:off
+        
+        from("rabbitmq://localhost:5672/first?queue=test&concurrentConsumers=10&username=user&password=bitnami&prefetchSize=1&autoAck=false&autoDelete=false")
+            .onException(NotReadyException.class)
+                .log("Error for ${body}! Requeue")
+                .asyncDelayedRedelivery().redeliveryDelay(5000) // wait 5 secs to redeliver and requeue if the redeliver fails
+                .maximumRedeliveries(1)
+                .setHeader(RabbitMQConstants.REQUEUE, constant(true))
+                .handled(true)
+                .setFaultBody(constant(true))
+            .end()
+            .convertBodyTo(Integer.class)
+            .log("Received: ${body}")
+            .process((e) -> {
+                int num = e.getIn().getBody(Integer.class);
+                // Throw exception if the number is even
+                if(num % 2 == 0) {
+                    throw new NotReadyException(); // create a new Exception and throw it if the status is not ready
+                }
+            })
+            .log("Not even number processed successfully: ${body}");
+
+
+        // @formatter:on
+    }
+
+}
