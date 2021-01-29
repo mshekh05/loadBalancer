@@ -1,0 +1,22 @@
+ Group And Concatenate With Formulas And Filter Function
+In Excel, you can apply formulas to concatenated rows based on one column, then use the Filter function to display the result only.
+
+Note: You need to sort your data by the class before following steps.
+
+1. In a blank cell next to the data range, for instance, C13, type this formula =IF(A13=A12,C12&", "&B13,B13), press Enter key and fill the formula to cells with dragging fill handle.
+doc concatenate by group 2
+
+In the formula, A13 is the first data in the “Class” column, B13 is the first data in the “Name” column, “,” is the separator to delimit concatenate contents.
+
+2. Then in the next column, D13, type this formula =IF(A13<>A14,"Last","") , and drag fill handle down to apply the formula to cells you need.
+doc concatenate by group 3
+
+3. Now select all the data range including formulas and click Data > Filter to add Filter icons to the data.
+doc concatenate by group 4
+
+4. Click the Filter icon in last formula header, check Last checkbox only from the drop-down list, and click OK.
+doc concatenate by group 5
+
+Now the result is shown as below, you can remove last helper column if you do not need it ever.
+doc concatenate by group 6
+
