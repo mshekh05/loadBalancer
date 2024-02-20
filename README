@@ -1,1 +1,8 @@
-CC proj 1
+The best hashing algorithm for consistent hashing typically depends on your specific requirements, such as performance, security, and collision resistance. For load balancing in distributed systems like yours, where performance is crucial, both CityHash and MurmurHash are popular choices due to their speed and decent distribution properties.
+
+- CityHash is optimized for speed and has been widely used in distributed systems for load balancing and data partitioning.
+- MurmurHash is another fast and well-regarded hash function commonly used for similar purposes.
+
+SHA-256, while highly secure, might be overkill for load balancing due to its computational overhead compared to CityHash and MurmurHash.
+
+Given your scenario of processing 2 million trades in 2 hours, either CityHash or MurmurHash should suffice. You may want to benchmark both to see which one better fits your performance requirements.
